@@ -1,0 +1,53 @@
+#change wd on your device
+setwd(dir = "/Users/hakamneamaalkassis/Desktop/Work stuff/ENS/Courses/S2/LITREV")
+
+#load necessary libraries
+library(ggplot2)
+library(metafor)
+
+#Read in your data file. This file needs to be in tab-separated value form.
+df <- read.csv("calculation.tsv",header=TRUE,sep="\t",dec = ",")
+
+#clean up a bit
+lapply(df[,c(2:4)], as.numeric)
+df <- df[-5,]
+View(df)
+
+#calcuate the natural logarithm to make the plot more visually appealing
+df_log <- df
+df_log[,c(2:4)] = log(df_log[,c(2:4)])
+
+summary(df_log)
+View(df_log)
+
+#create forest plot (the labels thing stopped working for some reason)
+#with log data
+ggplot(data=df_log, aes(y=1:9, x=effect_size_general, xmin=ci_min, xmax=ci_max)) +
+  geom_point() + 
+  geom_errorbarh(height=.1) +
+  scale_y_continuous(name = "Study", breaks=1:nrow(df_log), labels= df_log$paper) +
+  scale_x_continuous(name = "ln(OR)", breaks= seq(-1,1,0.2)) +
+  geom_vline(xintercept = c(0,mean(df_log$effect_size_general)), color=c("red","blue"), alpha=0.3,labels=c("0","Average ES")) +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+#or with raw data if you want
+ggplot(data=df, aes(y=1:9, x=effect_size_general, xmin=ci_min, xmax=ci_max)) +
+  geom_point() + 
+  geom_errorbarh(height=.1) +
+  scale_y_continuous(name = "Study", breaks=1:nrow(df), labels= df$paper) +
+  scale_x_continuous(name = "OR", breaks= seq(-5,10,1)) +
+  geom_vline(xintercept = c(0,mean(df$effect_size_general)), color=c("red","blue"), alpha=0.3, labels=c("0","Average ES")) +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  coord_cartesian(xlim = c(-5,15),ylim = c(0,10),expand = FALSE,default = FALSE,clip = "on")
+
+#import a sheet where we calculated the se of odds ratios from the equation of their confidence intervals
+df_log_new <- read.csv("values.txt",header=TRUE,sep="\t",dec = ",")
+
+#plot the funnel plot
+funnel(df_log_new$log.OR., df_log_new$se_from_min)
+
+#done!
